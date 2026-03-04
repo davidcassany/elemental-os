@@ -155,11 +155,24 @@ var _ = Describe("E2E - Checking a simple application", Label("check-app"), func
 
 		appName := "hello-world"
 
-		// File where to host client cluster kubeconfig
-		kubeConfig, err := rancher.SetClientKubeConfig(clusterNS, clusterName)
+		var err error
+		var kubeConfig string
+
+		// Ensure the downstream cluster kubeconfig is functional
+		Eventually(func() string {
+			kubeConfig, err = rancher.SetClientKubeConfig(clusterNS, clusterName)
+			Expect(err).To(Not(HaveOccurred()))
+			Expect(kubeConfig).To(Not(BeEmpty()))
+
+			podStatus, err := kubectl.RunWithoutErr("get", "pod", "--all-namespaces")
+			if strings.TrimSpace(podStatus) == "" || err != nil {
+				os.Remove(kubeConfig)
+				return ""
+			}
+			return strings.TrimSpace(podStatus)
+		}, tools.SetTimeout(4*time.Minute), 30*time.Second).ShouldNot(BeEmpty())
+
 		defer os.Remove(kubeConfig)
-		Expect(err).To(Not(HaveOccurred()))
-		Expect(kubeConfig).To(Not(BeEmpty()))
 
 		By("Waiting for all pods", func() {
 			WaitForAllPods()
