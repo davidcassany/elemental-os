@@ -161,9 +161,9 @@ var _ = Describe("E2E - Checking a simple application", Label("check-app"), func
 		// Ensure the downstream cluster kubeconfig is functional
 		Eventually(func() string {
 			kubeConfig, err = rancher.SetClientKubeConfig(clusterNS, clusterName)
-			Expect(err).To(Not(HaveOccurred()))
-			Expect(kubeConfig).To(Not(BeEmpty()))
-
+			if err != nil || kubeConfig == "" {
+				return ""
+			}
 			podStatus, err := kubectl.RunWithoutErr("get", "pod", "--all-namespaces")
 			if strings.TrimSpace(podStatus) == "" || err != nil {
 				os.Remove(kubeConfig)
